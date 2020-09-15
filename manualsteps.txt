@@ -1,0 +1,127 @@
+
+1. elasticsearch:
+
+    wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -  && \
+    echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list && \
+    sudo apt update && \
+    sudo apt install elasticsearch 
+
+    sudo vi /etc/elasticsearch/elasticsearch.yml
+
+    network.host: localhost
+    http.port: 9200
+
+    
+  sudo systemctl start elasticsearch
+  sudo systemctl enable elasticsearch
+  sudo systemctl status elasticsearch
+  netstat -pnltu
+  curl -X GET "localhost:9200"
+2. logstash:
+
+     openssl version -a
+     sudo apt install logstash -y
+
+      18.224.44.11  elk-master
+
+      mkdir -p /etc/logstash/ssl
+      cd /etc/logstash/
+
+      openssl req -subj '/CN=elk-master/' -x509 -days 3650 -batch -nodes -newkey rsa:2048 -keyout ssl/logstash-forwarder.key -out ssl/logstash-forwarder.crt
+      cd /etc/logstash/
+      vim conf.d/filebeat-input.conf
+      
+input {
+ beats {
+   port => 5443
+   type => syslog
+   ssl => true
+   ssl_certificate => "/etc/logstash/ssl/logstash-forwarder.crt"
+   ssl_key => "/etc/logstash/ssl/logstash-forwarder.key"
+ }
+ }
+
+vim conf.d/syslog-filter.conf
+
+
+filter {
+  if [type] == "syslog" {
+    grok {
+      match => { "message" => "%{SYSLOGTIMESTAMP:syslog_timestamp} %{SYSLOGHOST:syslog_hostname} %{DATA:syslog_program}(?:\[%{POSINT:syslog_pid}\])?: %{GREEDYDATA:syslog_message}" }
+      add_field => [ "received_at", "%{@timestamp}" ]
+      add_field => [ "received_from", "%{host}" ]
+    }
+    date {
+      match => [ "syslog_timestamp", "MMM  d HH:mm:ss", "MMM dd HH:mm:ss" ]
+    }
+  }
+}
+
+
+vim conf.d/output-elasticsearch.conf
+
+
+output {
+ elasticsearch { hosts => ["localhost:9200"]
+   hosts => "localhost:9200"
+   manage_template => false
+   index => "%{[@metadata][beat]}-%{+YYYY.MM.dd}"
+   document_type => "%{[@metadata][type]}"
+ }
+}
+
+sudo systemctl enable logstash
+sudo systemctl start logstash
+
+sudo systemctl status logstash
+netstat -pnltu
+
+3. kibana:
+
+ sudo apt install kibana -y
+ vim /etc/kibana/kibana.yml
+ 
+server.port: 5601
+server.host: "localhost"
+elasticsearch.url: "https://localhost:9200"
+
+
+
+sudo systemctl enable kibana
+sudo systemctl start kibana
+
+netstat -pnltu
+
+nginx:  optional
+
+4. filebeat
+
+sudo apt install filebeat
+sudo vim /etc/filebeat/filebeat.yml
+
+#output.elasticsearch:
+  # Array of hosts to connect to.
+  #hosts: ["localhost:9200"]
+
+  
+  output.logstash:
+    # The Logstash hosts
+    hosts: ["localhost:5044"]
+
+
+enabled: true
+
+
+
+  paths:
+    - /var/log/auth.log
+    - /var/log/syslog
+
+
+
+    
+    systemctl start filebeat
+    systemctl enable filebeat
+
+
+systemctl status filebeat
