@@ -1,3 +1,4 @@
+ref; https://www.journaldev.com/27193/install-elasticsearch-logstash-kibana-elastic-stack-ubuntu
 
 1. elasticsearch:
 
