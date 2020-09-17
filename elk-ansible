@@ -1,0 +1,22 @@
+ref: https://logz.io/blog/elk-stack-ansible/
+
+
+[elkservers]
+52.90.104.179 ansible_user=ubuntu
+
+[defaults]
+[defaults]private_key_file=/path/to/keyfile.pem
+
+
+ansible elkservers -m ping
+
+
+git clone https://github.com/DanielBerman/ansible-elk-playbook.git
+
+cd ansible-elk-playbook
+
+sudo ansible-playbook site.yml
+
+http://<serverhost>:5601
+
+we installed Metricbeat for server performance monitoring, enter ‘metricbeat-*’ as the index pattern and select the @timestamp field as the time filter field name:
